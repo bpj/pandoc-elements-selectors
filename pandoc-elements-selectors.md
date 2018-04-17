@@ -284,9 +284,9 @@ Examples:
 ```
 
 
-### `[!]&<method>[!=]~<string>`
+### `[!]&<method>[!|=]~<string>`
 
-### `[!]&<method>[!=]~{<regex>}[<modifiers>]`
+### `[!]&<method>[!|=]~{<regex>}[<modifiers>]`
 
 True if the element has a method `<method>`,
 and the return value is equal to `<string>`
@@ -335,9 +335,9 @@ Examples:
 '%lang'
 ```
 
-### `[!]%<attribute>[!=]~<string>`
+### `[!]%<attribute>[!|=]~<string>`
 
-### `[!]%<attribute>[!=]~{<regex>}[<modifiers>]`
+### `[!]%<attribute>[!|=]~{<regex>}[<modifiers>]`
 
 True if the element has an attribute `<attribute>`,
 the value of which is equal to `<string>`
