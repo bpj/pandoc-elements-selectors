@@ -2,7 +2,7 @@
 
 # Proposed Pandoc::Elements extended selector expression syntax
 #
-# VERSION 201804171405
+# VERSION 201804171651
 #
 # You can test the syntax by running this script and typing selectors to STDIN.
 # The selector will be compiled and the compiled subroutine or any error message
@@ -11,7 +11,7 @@
 # use utf8;      
 use utf8::all;
 use autodie 2.26;
-use 0.510001;     
+use 5.010001;     
 use strict;    
 use warnings;  
 use warnings  qw(FATAL utf8);    
