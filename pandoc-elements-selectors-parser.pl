@@ -2,7 +2,7 @@
 
 # Proposed Pandoc::Elements extended selector expression syntax
 #
-# VERSION 201804181727
+# VERSION 201804181800
 #
 # You can test the syntax by running this script and typing selectors to STDIN.
 # The selector will be compiled and the compiled subroutine or any error message
@@ -32,10 +32,10 @@ my $string_re = qr{
     (?(DEFINE)
         (?<REGEX>
             (?:
-                [^\{\}\[\]\\]+                      # 'normal' characters
-            |   \\.                                 # or backslash escapes
-            |   \[ \]? [^\]]* (?: \\. [^\]]* )* \]  # or character classes
-            |   [{] (?&REGEX) [}]                   # or nested balanced braces
+                [^\{\}\[\]\\]+                          # 'normal' characters
+            |   \\.                                     # or backslash escapes
+            |   \[ \]? [^\]\\]* (?: \\. [^\]\\]* )* \]  # or character classes
+            |   [{] (?&REGEX) [}]                       # or nested balanced braces
             )*
         )
     )
