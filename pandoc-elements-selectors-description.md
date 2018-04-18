@@ -70,7 +70,7 @@ perform. These comparison operators are:
 ```
 
 Those operators which compare to a number must be followed by a
-\[`<number>`\]\[number\].
+[`<number>`](#number).
 
 ## Negation
 
