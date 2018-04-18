@@ -122,17 +122,6 @@ These are all valid:
     -0.12
     -1.23
 
-However both the zero before a decimal point and the digit(s) after a
-decimal point are required. Thus the following are invalid:
-
-    .12     # WRONG
-    12.     # WRONG
-    -.12    # WRONG
-    -12.    # WRONG
-
-(Note that `.12` would match a class `12`, which however would be
-invalid HTML\!)
-
 ### `<string>`
 
 ### `<key>`

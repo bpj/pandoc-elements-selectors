@@ -2,7 +2,7 @@
 
 # Proposed Pandoc::Elements extended selector expression syntax
 #
-# VERSION 201804181800
+# VERSION 201804182001
 #
 # You can test the syntax by running this script and typing selectors to STDIN.
 # The selector will be compiled and the compiled subroutine or any error message
@@ -46,20 +46,20 @@ my $expression_re = qr{^$string_re$};
 my $clause_re = qr{
     (?<not> \!? )
     (?:
-        (?<sigil> \: )                                   (?<type>  document|block|inline|meta)
-    |   (?<sigil> \& )                  (?<method> (?&ID)  )     (?<cmp> (?&CMP) ) (?<num>   (?&NUM)    )
-    |   (?<sigil> \& )                  (?<method> (?&ID)  ) (?: (?<cmp> (?&OP)  ) (?<value> (?&STRING) ) )?
-    |   (?<sigil> \% ) (?<op> (?&OP)? ) (?<key> (?&STRING) )     (?<cmp> (?&CMP) ) (?<num>   (?&NUM)    )
-    |   (?<sigil> \% ) (?<op> (?&OP)? ) (?<key> (?&STRING) ) (?: (?<cmp> (?&OP)  ) (?<value> (?&STRING) ) )?
-    |   (?<sigil> \# )                                                             (?<value> (?&STRING) )
-    |   (?<sigil> \. )                                                             (?<value> (?&STRING) )
-    |   (?<sigil>    )                                                             (?<value> (?&STRING) )
+        (?<sigil> \: ) (?<type> document|block|inline|meta )
+    |   (?<sigil> \& )                  (?<method> (?&ID)  ) (?: (?<cmp> (?&CMP) ) (?<num>   (?&NUM)    )
+                                                             |   (?<cmp> (?&OP)  ) (?<value> (?&STRING) )
+                                                             )?
+    |   (?<sigil> \% ) (?<op> (?&OP)? ) (?<key> (?&STRING) ) (?: (?<cmp> (?&CMP) ) (?<num>   (?&NUM)    )
+                                                             |   (?<cmp> (?&OP)  ) (?<value> (?&STRING) )
+                                                             )?
+    |   (?<sigil> [.#]? )                                                          (?<value> (?&STRING) )
     )
     \s* 
     (?(DEFINE)
         (?<ID> (?!\d) \w+ )
         (?<STRING> $string_re )
-        (?<NUM> -?\b[0-9]+(?: \. [0-9]+\b )? )
+        (?<NUM> -? \b (?: [0-9]+ | [0-9]* \. [0-9]+ ) \b )
         (?<CMP> [\!\=]?\= | [\<\>]\=? )
         (?<OP>  [\!\=]?\~ )
     )
