@@ -27,7 +27,7 @@ my $string_re = qr{
         (?<quote> '   ) (?<string>  [^']*   (?: ''  [^']*   )* ) '
     |   (?<quote> "   ) (?<string>  [^"]*   (?: ""  [^"]*   )* ) "
     |   (?<quote> [{] ) (?<regex>   (?&REGEX)                  ) [}] (?<mod> \w* )
-    |   (?<quote>     ) (?<string>  \b\w+\b )
+    |   (?<quote>     ) (?<string>  \b(?=\w)[-\w]*\w\b         )
     )
     (?(DEFINE)
         (?<REGEX>
@@ -46,14 +46,14 @@ my $expression_re = qr{^$string_re$};
 my $clause_re = qr{
     (?<not> \!? )
     (?:
-        (?<sigil> \: )                                  (?<type>  document|block|inline|meta)
-    |   (?<sigil> \& )  (?<method> (?&ID)  )     (?<cmp> (?&CMP) ) (?<num>   (?&NUM)    )
-    |   (?<sigil> \& )  (?<method> (?&ID)  ) (?: (?<cmp> (?&OP)  ) (?<value> (?&STRING) ) )?
-    |   (?<sigil> \% )  (?<key> (?&STRING) )     (?<cmp> (?&CMP) ) (?<num>   (?&NUM)    )
-    |   (?<sigil> \% )  (?<key> (?&STRING) ) (?: (?<cmp> (?&OP)  ) (?<value> (?&STRING) ) )?
-    |   (?<sigil> \# )                                             (?<value> (?&STRING) )
-    |   (?<sigil> \. )                                             (?<value> (?&STRING) )
-    |   (?<sigil>    )                                             (?<value> (?&STRING) )
+        (?<sigil> \: )                                   (?<type>  document|block|inline|meta)
+    |   (?<sigil> \& )                  (?<method> (?&ID)  )     (?<cmp> (?&CMP) ) (?<num>   (?&NUM)    )
+    |   (?<sigil> \& )                  (?<method> (?&ID)  ) (?: (?<cmp> (?&OP)  ) (?<value> (?&STRING) ) )?
+    |   (?<sigil> \% ) (?<op> (?&OP)? ) (?<key> (?&STRING) )     (?<cmp> (?&CMP) ) (?<num>   (?&NUM)    )
+    |   (?<sigil> \% ) (?<op> (?&OP)? ) (?<key> (?&STRING) ) (?: (?<cmp> (?&OP)  ) (?<value> (?&STRING) ) )?
+    |   (?<sigil> \# )                                                             (?<value> (?&STRING) )
+    |   (?<sigil> \. )                                                             (?<value> (?&STRING) )
+    |   (?<sigil>    )                                                             (?<value> (?&STRING) )
     )
     \s* 
     (?(DEFINE)
@@ -74,7 +74,6 @@ my $compile_quoted = sub {
     my($match) = @_;
     my $quote  = $match->{quote};
     (my $string = $match->{string}) =~ s/[$quote]{2}/$quote/g;
-    # ddp $string;
     return qr{^\Q$string\E$};
 };
 
@@ -114,14 +113,16 @@ my $compile_method_check = sub {
 
 my $compile_kv_check = sub {
     state $key_for_sigil = +{
-        q{.} => q/^class$/,
+        q{.} => q{/^class$/},
     };
     my($match) = @_;
     $match->{key} //= $key_for_sigil->{$match->{sigil}};
-    my($k, $v, $n, $c) = map {; $_ // "" } @{$match}{qw[key value not cmp]};
-    $c ||= '=~';
-    if ( length $v ) {
-        $v = qq{ \$_ $c $v };
+    my($k, $v, $n, $c, $o) = map {; $_ // "" } @{$match}{qw[key value not cmp op]};
+    for my $x ( [ \$k, \$o ], [ \$v, \$c ] ) {
+        ${$x->[1]} ||= '=~';
+        if ( length ${$x->[0]} ) {
+            ${$x->[0]} = qq{ \$_ ${$x->[1]} ${$x->[0]} };
+        }
     }
     if ( length $v ) {
         return qq{
@@ -129,7 +130,7 @@ my $compile_kv_check = sub {
                     \$e->can( 'keyvals' ) and do {
                         my \$kv   = \$e->keyvals;
                         my \$hits = 0;
-                        for my \$key ( grep { /$k/ } \$kv->keys ) {
+                        for my \$key ( grep { $k } \$kv->keys ) {
                             \$hits += ( grep { $v } \$kv->get_all( \$key ) );
                         }
                         !!\$hits;
@@ -140,7 +141,7 @@ my $compile_kv_check = sub {
     }
     else {
         return qq{
-            ( $n( \$e->can( 'keyvals' ) and !!(grep { /$k/ } \$e->keyvals->keys)))
+            ( $n( \$e->can( 'keyvals' ) and !!(grep { $k } \$e->keyvals->keys)))
         };
     }
 };
@@ -181,7 +182,11 @@ sub _compile_selector {
         $selector = _compile_clauses($selector);
     }
     my $selectors_code = join qq{ )\nor( }, @selectors;
-    my $code = qq{ \$sub = sub { my(\$e) = \@_; return( ( $selectors_code ) ); }; 1; };
+    my $code = qq{ \$sub = sub { 
+        no warnings qw[ uninitialized numeric ];
+        my(\$e) = \@_; return( ( $selectors_code ) ); };
+        1; 
+    };
     my $sub;
     local $@;
     eval($code) || do {
@@ -200,16 +205,18 @@ sub _compile_clauses {
             next unless defined $match->{$key};
             next unless $match->{$key} =~ /$expression_re/;
             $match->{$key} = $compile_expression{$+{quote}}->(+{ %+ });
+            $match->{$key} = "/$match->{$key}/"
         }
-        if ( $match->{cmp} ) {
-            $match->{cmp} =~ s/^\~/=~/;
-            $match->{cmp} =~ s/^=(?![=~])/==/;
+        for my $cmp ( qw[ cmp op ] ) {
+            $match->{$cmp} // next;
+            $match->{$cmp} ||= '=~';
+            $match->{$cmp} =~ s/^\~/=~/;
+            $match->{$cmp} =~ s/^=(?![=~])/==/;
         }
         if ( $match->{num} ) {
             ## Ensure decimal interpretation!
             $match->{num} =~ s/^0+(?=\d)//;
         }
-        $match->{value} &&= "/$match->{value}/";
         $match->{value} ||= $match->{num};
         push @clauses, $compile_clause{ $match->{sigil} }->($match);
     }
