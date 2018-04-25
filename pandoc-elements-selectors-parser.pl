@@ -2,7 +2,7 @@
 
 # Proposed Pandoc::Elements extended selector expression syntax
 #
-# VERSION 201804251535
+# VERSION 201804251550
 #
 # The latest version of this script can be found at 
 # <https://github.com/bpj/pandoc-elements-selectors>
@@ -44,9 +44,9 @@ my $string_re = qr{
     )
 }msx;
 
-my $expression_re = qr{^$string_re$};
+my $word_re = qr{^$string_re$};
 
-my $clause_re = qr{
+my $expression_re = qr{
     (?<not> \!? )
     (?:
         (?<sigil> \: ) (?<type> document|block|inline|meta )
@@ -69,8 +69,8 @@ my $clause_re = qr{
 }msx;
 
 my $selector_re = qr{
-    \s* (?<selector> (?&CLAUSE)+ ) \s* (?: \| \s* | \z ) | (?<invalid> \S+ )
-    (?(DEFINE) (?<CLAUSE> $clause_re ) )
+    \s* (?<selector> (?&EXPRESSION)+ ) \s* (?: \| \s* | \z ) | (?<invalid> \S+ )
+    (?(DEFINE) (?<EXPRESSION> $expression_re ) )
 }msx;
 
 my $compile_quoted = sub {
@@ -80,7 +80,7 @@ my $compile_quoted = sub {
     return qr{^\Q$string\E$};
 };
 
-my %compile_expression = (
+my %compile_word = (
     q[']    => $compile_quoted,
     q["]    => $compile_quoted,
     q[]     => sub { qr{^\Q$_[0]{string}\E$} },
@@ -149,7 +149,7 @@ my $compile_kv_check = sub {
     }
 };
 
-my %compile_clause = (
+my %compile_expression = (
     q{:} => sub {
         my ( $match ) = @_;
         my $t         = "is_$match->{type}";
@@ -182,7 +182,7 @@ sub _compile_selector {
         push @selectors, $match{selector}
     }
     for my $selector ( @selectors ) {
-        $selector = _compile_clauses($selector);
+        $selector = _compile_expressions($selector);
     }
     my $selectors_code = join qq{ )\nor( }, @selectors;
     my $code = qq{ \$sub = sub { 
@@ -199,15 +199,15 @@ sub _compile_selector {
     return $sub;
 }
 
-sub _compile_clauses {
+sub _compile_expressions {
     my( $selector ) = @_;
-    my @clauses;
-    while( $selector =~ /\G$clause_re/gc ) {
+    my @expressions;
+    while( $selector =~ /\G$expression_re/gc ) {
         my $match = +{ %+ };
         for my $key ( qw[ key value ] ) {
             next unless defined $match->{$key};
-            next unless $match->{$key} =~ /$expression_re/;
-            $match->{$key} = $compile_expression{$+{quote}}->(+{ %+ });
+            next unless $match->{$key} =~ /$word_re/;
+            $match->{$key} = $compile_word{$+{quote}}->(+{ %+ });
             $match->{$key} = "/$match->{$key}/"
         }
         for my $cmp ( qw[ cmp op ] ) {
@@ -221,9 +221,9 @@ sub _compile_clauses {
             $match->{num} =~ s/^0+(?=\d)//;
         }
         $match->{value} ||= $match->{num};
-        push @clauses, $compile_clause{ $match->{sigil} }->($match);
+        push @expressions, $compile_expression{ $match->{sigil} }->($match);
     }
-    return join 'and', @clauses;
+    return join 'and', @expressions;
 }
 
  
