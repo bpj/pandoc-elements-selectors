@@ -2,6 +2,11 @@ CHANGELOG
 
 <https://github.com/bpj/pandoc-elements-selectors>
 
+2018-04-25 16:08:12 +0200
+    Document unquoted strings aka "words"
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
 2018-04-25 15:51:09 +0200
     change names in code to agree with terms in description
 

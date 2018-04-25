@@ -5,7 +5,7 @@ abstract: |
     parser and compiler in Perl
 author: 'Benct Philip Jonsson \<bpjonsson\@gmail.com\>'
 copyright: '\(c) 2017- Benct Philip Jonsson'
-version: '201804251550'
+version: '201804251610'
 date: '2018-04-25'
 website: <https://github.com/bpj/pandoc-elements-selectors>
 script_name: 'pandoc-elements-selectors-parser.pl'
@@ -20,7 +20,7 @@ Proposed Pandoc::Elements extended selector expression syntax
 
 # VERSION
 
-201804251550
+201804251610
 
 # DESCRIPTION
 
@@ -171,15 +171,13 @@ These are all valid:
     -0.12
     -1.23
 
-### `<string>`
+### `<string>`, `<key>`, `<value>`
 
-### `<key>`
-
-### `<value>`
-
-An arbitrary string delimited by single (`'...'`) or double (`"..."`)
-quotes. The string inside the quotes must match literally in its
-context.
+An arbitrary string, either unquoted and consisting of word (`\w`)
+characters, possibly with internal hyphens (`-` U+002D), or quoted,
+i.e. delimited by single (`'...'` U+0027) or double (`"..."` U+0022)
+quotes. The unquoted "word" or string inside the quotes must match
+literally in its context.
 
 To include a quote of the same type you should escape it by doubling.
 This escaping mechanism is orthogonal to, and should be used in addition
