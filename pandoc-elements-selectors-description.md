@@ -5,7 +5,7 @@ abstract: |
     parser and compiler in Perl
 author: 'Benct Philip Jonsson \<bpjonsson\@gmail.com\>'
 copyright: '\(c) 2017- Benct Philip Jonsson'
-version: '201804251350'
+version: '201804251530'
 date: '2018-04-25'
 website: <https://github.com/bpj/pandoc-elements-selectors>
 script_name: 'pandoc-elements-selectors-parser.pl'
@@ -13,7 +13,6 @@ monofontoptions:
 - 'Scale=0.7'
 style: BPJ
 ---
-
 
 # NAME
 
@@ -31,6 +30,37 @@ Proposed Pandoc::Elements extended selector expression syntax
 
   - perl v5.10.1
 
+# DESIGN PRINCIPLES
+
+  - Stay backwards compatible with the existing selector syntax of Pandoc::Elements.
+
+  - Since the difference between selection by element name and selection by
+    element name was previously indicated by prefixing the selector expression
+    for the latter with a colon, new selector expression types have been
+    indicated by punctuation character prefixes (hereafter “sigils”) as well.
+
+  - Base extended syntax on well-known models where possible.
+    Thus operators and sigils have been borrowed from other languages
+    like Pandoc’s own element attribute syntax (which in turn is based on CSS),
+    Bash and Perl.
+
+  - Since the extended selector syntax supports embedded regular
+    expressions (hereafter “regexes”) an attempt has been made to avoid
+    confusion between extended selector syntax meta characters and regex
+    meta characters. Thus punctuation characters which are not regex meta
+    characters or at least less commonly used in regexes have been
+    preferred as meta characters in the extended selector syntax.
+    
+    In particular `{...}` rather than `[...]` have been chosen to delimit
+    regexes because brace quantifiers are probably less common in regexes
+    than character classes, especially in the current context: something
+    like `[Cc]ontainer` is probably more likely to occur than something like
+    `x{,3}large` when looking for attribute values.\[1\]
+    
+    The use of `.` as a sigil for class names was retained despite the
+    importance of the dot as regex meta character because the precedence
+    of CSS and in particular Pandoc itself was deemed more important in this case.
+
 # SELECTOR EXPRESSIONS
 
 Selectors are strings which contain one or more *subselectors*, each of
@@ -45,18 +75,18 @@ Subselectors stand in an `OR` relation to one another, so that a selector
 selects the union of elements selected by its subselectors,
 while selector expressions stand in an `AND` relation to one another,
 so that a subselector selects the intersection of the elements
-selected by its constituent selector expressions. Thus 
+selected by its constituent selector expressions. Thus
 
-*   `.foo &url` is a selector with one subselector with two selector expressions 
-which matches elements which have a class `foo` *and* have a method `url`.
+  - `.foo &url` is a selector with one subselector with two selector expressions
+    which matches elements which have a class `foo` *and* have a method `url`.
 
-*   `.foo|&url` is a selector with two subselectors with one selector expression 
-each, which matches elements which have a class `foo` *or* a method `url` (or both).
+  - `.foo|&url` is a selector with two subselectors with one selector expression
+    each, which matches elements which have a class `foo` *or* a method `url` (or both).
 
-*   `Code .perl|Link &url~{perldoc}` is a selector with two
-subselectors with two selector expressions each, which matches
-Code elements with a class `perl` or Link elements whose `url`
-method returns a value containing `perldoc`.
+  - `Code .perl|Link &url~{perldoc}` is a selector with two
+    subselectors with two selector expressions each, which matches
+    Code elements with a class `perl` or Link elements whose `url`
+    method returns a value containing `perldoc`.
 
 Each expression has one of the forms described below, where words
 enclosed in angle brackets (`<...>`) are placeholders and square
@@ -261,6 +291,9 @@ Examples:
     ':inline'
     ':meta'
 
+(The `:` character is already used in this way in the existing
+Pandoc::Elements selector syntax.)
+
 ### Select by element id
 
 #### `[!]#<string>`
@@ -276,6 +309,9 @@ Examples:
     '#"my-id"'
     '#{^diagram-}'
 
+(The `#` character is already used as a prefix for element ids in
+Pandoc’s attribute syntax and CSS selector syntax.)
+
 ### Select by class
 
 #### `[!].<string>`
@@ -284,6 +320,9 @@ Examples:
 
 True if the element has a class() attribute and one or more of the
 classes is equal to `<string>` or matches the `<regex>`.
+
+(The `.` character is already used as a prefix for class names in
+Pandoc’s attribute syntax and CSS selector syntax.)
 
 ### Select by element method
 
@@ -297,6 +336,9 @@ Examples:
     '&url'      # same as 'Link|Image'
     '&format'   # same as 'RawBlock|RawInline'
     '&attr'     # same as a rather long list...
+
+(The `&` character was chosen as a prefix for method names
+because it is used as the sigil for subroutines in Perl.)
 
 #### `[!]&<method><match-op><string>`
 
@@ -333,9 +375,7 @@ Examples:
 
 True if the element has an attribute `<attr-name>` accessible through
 `$e->keyvals->{$attribute}`; in other words it includes `id` and `class`
-but not e.g. `title` (unless you have said `[foo](bar
-"baz"){title="quux"}` which will be rendered by Pandoc as `<p><a
-href="bar" title="quux" title="baz">foo</a></p>` and probably confuse
+but not e.g. `title` (unless you have said `[foo](bar "baz"){title="quux"}` which will be rendered by Pandoc as `<p><a href="bar" title="quux" title="baz">foo</a></p>` and probably confuse
 your browser).
 
 Examples:
@@ -343,6 +383,11 @@ Examples:
     '%width'
     '%height'
     '%lang'
+
+(The `%` character was chosen as a prefix for attribute names
+because it is used as the sigil for hashes/associative arrays
+in Perl and thus is already associated with the concept of
+key–value pairs.)
 
 #### `[!]%<attr-name><match-op><value-string>`
 
@@ -443,3 +488,10 @@ the same terms as the Perl 5 programming language system itself. See
 <http://dev.perl.org/licenses/>.
 
 # SEE ALSO
+
+1.  For the record `/.../` was rejected as regex delimiters because
+    it is probably easier to forget to backslash-escape a slash inside a regex
+    than to forget a closing bracket-type delimiter, and braces are probably
+    more uncommon than slashes (which are used in dates and fractions for
+    example} so that backslashes can usually be avoided entirely, even though
+    the possibility to choose custom delimiters like in Perl isn’t available.

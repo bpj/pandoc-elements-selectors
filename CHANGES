@@ -2,6 +2,14 @@ CHANGELOG
 
 <https://github.com/bpj/pandoc-elements-selectors>
 
+2018-04-25 15:31:24 +0200
+    Describe and motivate design principles and metacharacter choices
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    
+
+
 2018-04-25 13:52:31 +0200
     Document the difference between subselectors and selector
     expressions better
