@@ -5,7 +5,7 @@ abstract: |
     parser and compiler in Perl
 author: 'Benct Philip Jonsson \<bpjonsson\@gmail.com\>'
 copyright: '\(c) 2017- Benct Philip Jonsson'
-version: '201804251530'
+version: '201804251535'
 date: '2018-04-25'
 website: <https://github.com/bpj/pandoc-elements-selectors>
 script_name: 'pandoc-elements-selectors-parser.pl'
@@ -20,7 +20,7 @@ Proposed Pandoc::Elements extended selector expression syntax
 
 # VERSION
 
-201804182001
+201804251535
 
 # DESCRIPTION
 
