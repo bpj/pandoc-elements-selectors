@@ -2,7 +2,7 @@
 
 # Proposed Pandoc::Elements extended selector expression syntax
 #
-# VERSION 201804251610
+# VERSION 201804251740
 #
 # The latest version of this script can be found at 
 # <https://github.com/bpj/pandoc-elements-selectors>
@@ -61,10 +61,10 @@ my $expression_re = qr{
     \s* 
     (?(DEFINE)
         (?<ID> (?!\d) \w+ )
-        (?<STRING> $string_re )
         (?<NUM> -? \b (?: [0-9]* \. [0-9]+ | [0-9]+ ) \b )
         (?<CMP> [\!\=]?\= | [\<\>]\=? )
         (?<OP>  [\!\=]?\~ )
+        (?<STRING> $string_re )
     )
 }msx;
 

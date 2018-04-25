@@ -5,7 +5,7 @@ abstract: |
     parser and compiler in Perl
 author: 'Benct Philip Jonsson \<bpjonsson\@gmail.com\>'
 copyright: '\(c) 2017- Benct Philip Jonsson'
-version: '201804251610'
+version: '201804251740'
 date: '2018-04-25'
 website: <https://github.com/bpj/pandoc-elements-selectors>
 script_name: 'pandoc-elements-selectors-parser.pl'
@@ -20,7 +20,7 @@ Proposed Pandoc::Elements extended selector expression syntax
 
 # VERSION
 
-201804251610
+201804251740
 
 # DESCRIPTION
 
@@ -28,38 +28,44 @@ Proposed Pandoc::Elements extended selector expression syntax
 
 # PREREQUISITES
 
-  - perl v5.10.1
+-   perl v5.10.1
 
 # DESIGN PRINCIPLES
 
-  - Stay backwards compatible with the existing selector syntax of Pandoc::Elements.
+-   Stay backwards compatible with the existing selector syntax of
+    Pandoc::Elements.
 
-  - Since the difference between selection by element name and selection by
-    element name was previously indicated by prefixing the selector expression
-    for the latter with a colon, new selector expression types have been
-    indicated by punctuation character prefixes (hereafter “sigils”) as well.
+-   Since the difference between selection by element name and selection
+    by element name was previously indicated by prefixing the selector
+    expression for the latter with a colon, new selector expression
+    types have been indicated by punctuation character prefixes
+    (hereafter “sigils”) as well.
 
-  - Base extended syntax on well-known models where possible.
-    Thus operators and sigils have been borrowed from other languages
-    like Pandoc’s own element attribute syntax (which in turn is based on CSS),
-    Bash and Perl.
+-   Base extended syntax on well-known models where possible. Thus
+    operators and sigils have been borrowed from other languages like
+    Pandoc’s own element attribute syntax (which in turn is based on
+    CSS), Bash and Perl.
 
-  - Since the extended selector syntax supports embedded regular
+-   Use distinct meta characters for distinct purposes.
+
+-   Since the extended selector syntax supports embedded regular
     expressions (hereafter “regexes”) an attempt has been made to avoid
     confusion between extended selector syntax meta characters and regex
-    meta characters. Thus punctuation characters which are not regex meta
-    characters or at least less commonly used in regexes have been
+    meta characters. Thus punctuation characters which are not regex
+    meta characters or at least less commonly used in regexes have been
     preferred as meta characters in the extended selector syntax.
-    
-    In particular `{...}` rather than `[...]` have been chosen to delimit
-    regexes because brace quantifiers are probably less common in regexes
-    than character classes, especially in the current context: something
-    like `[Cc]ontainer` is probably more likely to occur than something like
-    `x{,3}large` when looking for attribute values.\[1\]
-    
+
+    In particular `{...}` rather than `[...]` have been chosen to
+    delimit regexes because brace quantifiers are probably less common
+    in regexes than character classes, especially in the current
+    context: something like `[Cc]ontainer` is probably more likely to
+    occur than something like `x{,3}large` when looking for attribute
+    values.\[1\]
+
     The use of `.` as a sigil for class names was retained despite the
     importance of the dot as regex meta character because the precedence
-    of CSS and in particular Pandoc itself was deemed more important in this case.
+    of CSS and in particular Pandoc itself was deemed more important in
+    this case.
 
 # SELECTOR EXPRESSIONS
 
@@ -71,22 +77,24 @@ Subselectors are separated by pipes (`|`). Selector expressions are
 separated by whitespace, which is optional except as it is needed to
 separate tokens.
 
-Subselectors stand in an `OR` relation to one another, so that a selector
-selects the union of elements selected by its subselectors,
-while selector expressions stand in an `AND` relation to one another,
-so that a subselector selects the intersection of the elements
-selected by its constituent selector expressions. Thus
+Subselectors stand in an `OR` relation to one another, so that a
+selector selects the union of elements selected by its subselectors,
+while selector expressions stand in an `AND` relation to one another, so
+that a subselector selects the intersection of the elements selected by
+its constituent selector expressions. Thus
 
-  - `.foo &url` is a selector with one subselector with two selector expressions
-    which matches elements which have a class `foo` *and* have a method `url`.
+-   `.foo &url` is a selector with one subselector with two selector
+    expressions which matches elements which have a class `foo` *and*
+    have a method `url`.
 
-  - `.foo|&url` is a selector with two subselectors with one selector expression
-    each, which matches elements which have a class `foo` *or* a method `url` (or both).
+-   `.foo|&url` is a selector with two subselectors with one selector
+    expression each, which matches elements which have a class `foo`
+    *or* a method `url` (or both).
 
-  - `Code .perl|Link &url~{perldoc}` is a selector with two
-    subselectors with two selector expressions each, which matches
-    Code elements with a class `perl` or Link elements whose `url`
-    method returns a value containing `perldoc`.
+-   `Code .perl|Link &url~{perldoc}` is a selector with two subselectors
+    with two selector expressions each, which matches Code elements with
+    a class `perl` or Link elements whose `url` method returns a value
+    containing `perldoc`.
 
 Each expression has one of the forms described below, where words
 enclosed in angle brackets (`<...>`) are placeholders and square
@@ -105,18 +113,16 @@ With some properties you can specify a value to compare to the property
 value, along with an operator specifying the kind of comparison to
 perform. These comparison operators are:
 
-``` 
-   Operator  True if a property value...
-  ---------- ----------------------------------------------------------
-   ~ or =~   ...matches a regex or equals a string.
-      !~     ...does not match a regex or is different from a string.
-   = or ==   ...is equal to a number.
-      !=     ...is not equal to a number.
-      <      ...is less than a number.
-      <=     ...is less than or equal to a number.
-      >      ...is greater than a number.
-      >=     ...is greater than or equal to a number.
-```
+       Operator  True if a property value...
+      ---------- ----------------------------------------------------------
+       ~ or =~   ...matches a regex or equals a string.
+          !~     ...does not match a regex or is different from a string.
+       = or ==   ...is equal to a number.
+          !=     ...is not equal to a number.
+          <      ...is less than a number.
+          <=     ...is less than or equal to a number.
+          >      ...is greater than a number.
+          >=     ...is greater than or equal to a number.
 
 Those operators which compare to a number must be followed by a
 [`<number>`](#number).
@@ -127,16 +133,14 @@ In addition to negated operators `!~` and `!=` you can prefix an entire
 selector expression with a `!`. This reverses the truth value of the
 expression:
 
-``` 
-  Example        True if the element...
-  -------------- ----------------------------------------------------------------------------
-  .foo           ...has a class "foo".
-  !.foo          ...does not have a class "foo".
-  %foo~bar       ...has an attribute "foo" with the value "bar".
-  !%foo~bar      ...does not have an attribute "foo" with the value "bar".
-  &url~{^ftp}    ...has a method url() which returns a value starting with "ftp".
-  !&url~{^ftp}   ...does not have a method url() which returns a value starting with "ftp".
-```
+      Example        True if the element...
+      -------------- ----------------------------------------------------------------------------
+      .foo           ...has a class "foo".
+      !.foo          ...does not have a class "foo".
+      %foo~bar       ...has an attribute "foo" with the value "bar".
+      !%foo~bar      ...does not have an attribute "foo" with the value "bar".
+      &url~{^ftp}    ...has a method url() which returns a value starting with "ftp".
+      !&url~{^ftp}   ...does not have a method url() which returns a value starting with "ftp".
 
 Note that in the last two negated expressions it doesn’t make a
 difference whether the element lacks those properties or has them with
@@ -171,13 +175,13 @@ These are all valid:
     -0.12
     -1.23
 
-### `<string>`, `<key>`, `<value>`
+### `<string>`, `<key>`, `<value>`, `<name>`
 
 An arbitrary string, either unquoted and consisting of word (`\w`)
-characters, possibly with internal hyphens (`-` U+002D), or quoted,
-i.e. delimited by single (`'...'` U+0027) or double (`"..."` U+0022)
-quotes. The unquoted "word" or string inside the quotes must match
-literally in its context.
+characters, possibly with internal hyphens (`-` U+002D), or quoted, i.e.
+delimited by single (`'...'` U+0027) or double (`"..."` U+0022) quotes.
+The unquoted "word" or string inside the quotes must match literally in
+its context.
 
 To include a quote of the same type you should escape it by doubling.
 This escaping mechanism is orthogonal to, and should be used in addition
@@ -204,46 +208,46 @@ modifiers which are valid with the Perl `qr//` operator.
 
 #### Regex gotchas
 
-  - Note that any interpolation of variables or double-quotish escapes
+-   Note that any interpolation of variables or double-quotish escapes
     must be handled through an ‘outer’ Perl doublequoted string (`"..."`
     or `qq{...}`) enclosing the entire selector:
-    
+
     ``` perl
     "%foo~{$bar\N{DOLLAR SIGN}$baz}"    # RIGHT
-    
+
     qq{%foo~{$bar\x{24}$baz}}           # RIGHT
-    
+
     '%foo~{$bar\N{DOLLAR SIGN}$baz}'    # WRONG
-    
+
     q{%foo~{$bar\x{24}$baz}}            # WRONG
     ```
 
-  - Note the distinction between double-quoted string escapes like
+-   Note the distinction between double-quoted string escapes like
     these:
-    
+
     ``` perl
     "\t \n \r \f \a \e \cK \x{0} \x00 \N{name} \N{U+263D} \o{0} \000 \l \u \L \U \Q \E"
     ```
-    
+
     and regex escapes like these which must be typed with a double
     backslash as shown when used in a selector in a double quoted
     string:
-    
+
     ``` perl
     qr{  \w   \W   \s   \S   \d   \D   \pL   \PL   \X   \1   etc.  \g{1}   }
     qq{  \\w  \\W  \\s  \\S  \\d  \\D  \\pL  \\PL  \\X  \\1  etc.  \\g{1}  }
-    
+
     qr{  \k<name>   \K   \N   \v   \V   \h   \H   \R   \b   \B   \A   \Z   \z   }
     qq{  \\k<name>  \\K  \\N  \\v  \\V  \\h  \\H  \\R  \\b  \\B  \\A  \\Z  \\z  }
-    
+
     "%foo~{$foo\\s+$bar}"   # RIGHT
-    
+
     "%foo~{$foo\s+$bar}"    # WRONG == qr/${foo}s+$bar/ !
     ```
-    
+
     Note also the distinction between `\N{name} \N{U+263D}` on the one
     hand and `\N` without a following charname in curly brackets: the
-    latter is the regex escape which matches the complement of `\n`\!
+    latter is the regex escape which matches the complement of `\n`!
 
 ### `<num-op>`
 
@@ -335,8 +339,8 @@ Examples:
     '&format'   # same as 'RawBlock|RawInline'
     '&attr'     # same as a rather long list...
 
-(The `&` character was chosen as a prefix for method names
-because it is used as the sigil for subroutines in Perl.)
+(The `&` character was chosen as a prefix for method names because it is
+used as the sigil for subroutines in Perl.)
 
 #### `[!]&<method><match-op><string>`
 
@@ -346,7 +350,7 @@ True if the element has a method `<method>`, and the return value is
 equal to `<string>` or matches `<regex>`.
 
 Note that you probably don’t want to use this with methods which don’t
-return strings\!
+return strings!
 
 Examples:
 
@@ -382,10 +386,9 @@ Examples:
     '%height'
     '%lang'
 
-(The `%` character was chosen as a prefix for attribute names
-because it is used as the sigil for hashes/associative arrays
-in Perl and thus is already associated with the concept of
-key–value pairs.)
+(The `%` character was chosen as a prefix for attribute names because it
+is used as the sigil for hashes/associative arrays in Perl and thus is
+already associated with the concept of key–value pairs.)
 
 #### `[!]%<attr-name><match-op><value-string>`
 
@@ -411,19 +414,19 @@ indicating how the `<name-string>` shall be compared to attribute names.
 
 Examples:
 
-  - `'%!~class'`
+-   `'%!~class'`
 
-Selects elements which have one or more attributes which do *not* have
-the name `class`.
+    Selects elements which have one or more attributes which do *not*
+    have the name `class`.
 
-  - `'%=~class !%id'`
+-   `'%=~class !%id'`
 
-Selects elements which have at least one class and no id attribute.
+    Selects elements which have at least one class and no id attribute.
 
-  - `'%!~class %class!~{^foo}'`
+-   `'%!~class %class!~{^foo}'`
 
-Selects elements which have at least one non-`class` attribute and no
-class which starts with `foo`.
+    Selects elements which have at least one non-`class` attribute and
+    no class which starts with `foo`.
 
 Note that this is most useful with the `!~` (no-match) operator.
 `%<attr-name>` and `%~<attr-name>` are just shorthand for
@@ -471,9 +474,46 @@ Examples:
     '%{^data-}>1'
     '%{width|height}>=500
 
+## Shortcuts
+
+Note that some parts of the expression syntax above are shortcuts for
+longer (sub)expressions. In particular
+
+    (Sub)expression    Example            Equivalent longer expression
+    ------------------ ------------------ ------------------------------
+    <name>~<value>     %foo~bar           %foo=~bar
+
+    <name>=<number     &level=2           &level==2
+
+    <word_or-hyphen>   foo_bar, foo-bar   'foo_bar', 'foo-bar'
+
+    <ElementName>      CodeBlock          &name=~CodeBlock
+
+    :<type>            :block             &is_block==1
+
+    #<id>              #foo               &id=~foo
+
+    .<class>           .foo               %class=~foo
+
+    %<attr-name>       %data-foo          %=~data-foo
+
+    %~<attr-name>      %~data-foo         %=~data-foo
+
+    %~{<regex>}        %~{^data-}         %=~{^data-}
+
+    %{<regex>}         %{^data-}          %=~{^data-}
+    --------------------------------------------------------------------
+
+On the one hand it can be argued that these shortcuts are unnecessary
+since the longer equivalents (which they are often 'translated into' by
+the parser) exist, but it can also be argued that it is an advantage to
+have shorter expressions for common cases, using a syntax which in most
+cases is familiar from elsewhere. Also most of the 'shortcuts' are
+easier on the human eye than their 'full' equivalents.
+
 # AUTHOR
 
-Benct Philip Jonsson (bpjonsson@gmail.com, <https://github.com/bpj>)
+Benct Philip Jonsson (<bpjonsson@gmail.com>, <https://github.com/bpj>)
 
 # COPYRIGHT
 
@@ -484,12 +524,12 @@ Copyright 2017- Benct Philip Jonsson
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself. See
 <http://dev.perl.org/licenses/>.
-
 # SEE ALSO
 
-1.  For the record `/.../` was rejected as regex delimiters because
-    it is probably easier to forget to backslash-escape a slash inside a regex
-    than to forget a closing bracket-type delimiter, and braces are probably
-    more uncommon than slashes (which are used in dates and fractions for
-    example} so that backslashes can usually be avoided entirely, even though
-    the possibility to choose custom delimiters like in Perl isn’t available.
+1.  For the record `/.../` was rejected as regex delimiters because it
+    is probably easier to forget to backslash-escape a slash inside a
+    regex than to forget a closing bracket-type delimiter, and braces
+    are probably more uncommon than slashes (which are used in dates and
+    fractions for example} so that backslashes can usually be avoided
+    entirely, even though the possibility to choose custom delimiters
+    like in Perl isn’t available.

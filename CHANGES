@@ -2,6 +2,11 @@ CHANGELOG
 
 <https://github.com/bpj/pandoc-elements-selectors>
 
+2018-04-25 17:33:25 +0200
+    Document "shortcuts"/syntactic sugar more explicitly
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
 2018-04-25 16:08:12 +0200
     Document unquoted strings aka "words"
 
