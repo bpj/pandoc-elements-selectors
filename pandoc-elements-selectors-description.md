@@ -5,7 +5,9 @@ abstract: |
     parser and compiler in Perl
 author: 'Benct Philip Jonsson \<bpjonsson\@gmail.com\>'
 copyright: '\(c) 2017- Benct Philip Jonsson'
-date: '2018-04-17'
+version: '201804251350'
+date: '2018-04-25'
+website: <https://github.com/bpj/pandoc-elements-selectors>
 script_name: 'pandoc-elements-selectors-parser.pl'
 monofontoptions:
 - 'Scale=0.7'
@@ -19,7 +21,7 @@ Proposed Pandoc::Elements extended selector expression syntax
 
 # VERSION
 
-201804181800
+201804182001
 
 # DESCRIPTION
 
@@ -33,11 +35,28 @@ Proposed Pandoc::Elements extended selector expression syntax
 
 Selectors are strings which contain one or more *subselectors*, each of
 which contains one or more *selector expressions*. Selector expressions
-are a small,declarative domain-specific language (DSL).
+are a small, declarative domain-specific language (DSL).
 
 Subselectors are separated by pipes (`|`). Selector expressions are
 separated by whitespace, which is optional except as it is needed to
 separate tokens.
+
+Subselectors stand in an `OR` relation to one another, so that a selector
+selects the union of elements selected by its subselectors,
+while selector expressions stand in an `AND` relation to one another,
+so that a subselector selects the intersection of the elements
+selected by its constituent selector expressions. Thus 
+
+*   `.foo &url` is a selector with one subselector with two selector expressions 
+which matches elements which have a class `foo` *and* have a method `url`.
+
+*   `.foo|&url` is a selector with two subselectors with one selector expression 
+each, which matches elements which have a class `foo` *or* a method `url` (or both).
+
+*   `Code .perl|Link &url~{perldoc}` is a selector with two
+subselectors with two selector expressions each, which matches
+Code elements with a class `perl` or Link elements whose `url`
+method returns a value containing `perldoc`.
 
 Each expression has one of the forms described below, where words
 enclosed in angle brackets (`<...>`) are placeholders and square

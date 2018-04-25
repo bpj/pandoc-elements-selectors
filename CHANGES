@@ -1,0 +1,85 @@
+CHANGELOG
+
+<https://github.com/bpj/pandoc-elements-selectors>
+
+2018-04-25 13:52:31 +0200
+    Document the difference between subselectors and selector
+    expressions better
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    
+
+
+2018-04-18 20:04:06 +0200
+    Improved clause regex. Removed req for leading 0 in decimal
+    number.
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    
+
+
+2018-04-18 18:26:43 +0200
+    minor markup correction and README additions
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    
+
+
+2018-04-18 17:53:49 +0200
+    fix backslash escapes in character classes
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    
+
+
+2018-04-18 17:39:36 +0200
+    add README.md and increase version number
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    
+
+
+2018-04-18 16:23:55 +0200
+    added .gitignore
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    
+
+
+2018-04-18 16:17:59 +0200
+    Document and improve regex attribute name matching.
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    Rename files.
+
+    General syntax documentation cleanup.
+
+    Allow internal hyphens in unquoted strings.
+
+    
+
+2018-04-17 16:53:23 +0200
+    correct minimum perl version in .pl file
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+    
+
+
+2018-04-17 14:47:23 +0200
+    minor correction in syntax description
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
+
+2017-02-??
+    first version
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
