@@ -5,22 +5,21 @@ abstract: |
     parser and compiler in Perl
 author: 'Benct Philip Jonsson \<bpjonsson\@gmail.com\>'
 copyright: '\(c) 2017- Benct Philip Jonsson'
-version: '201804251740'
-date: '2018-04-25'
-website: <https://github.com/bpj/pandoc-elements-selectors>
-script_name: 'pandoc-elements-selectors-parser.pl'
+website: '<https://github.com/bpj/pandoc-elements-selectors>'
+version: 201805021600
+date: '2018-05-02'
 monofontoptions:
 - 'Scale=0.7'
+script_name: 'pandoc-elements-selectors-parser.pl'
 style: BPJ
 ---
-
 # NAME
 
 Proposed Pandoc::Elements extended selector expression syntax
 
 # VERSION
 
-201804251740
+201805021600
 
 # DESCRIPTION
 
@@ -60,12 +59,20 @@ Proposed Pandoc::Elements extended selector expression syntax
     in regexes than character classes, especially in the current
     context: something like `[Cc]ontainer` is probably more likely to
     occur than something like `x{,3}large` when looking for attribute
-    values.\[1\]
+    values.[1]
 
     The use of `.` as a sigil for class names was retained despite the
     importance of the dot as regex meta character because the precedence
     of CSS and in particular Pandoc itself was deemed more important in
     this case.
+
+[1] For the record slashes (`/.../`) were rejected as regex delimiters
+because it is probably easier to forget to backslash-escape a slash inside
+a regex than to forget a closing bracket-type delimiter, and braces are
+probably more uncommon than slashes (which are used in dates and fractions
+for example} so that backslashes can usually be avoided entirely, even
+though the possibility to choose custom delimiters like in Perl isn’t
+available.
 
 # SELECTOR EXPRESSIONS
 
@@ -85,15 +92,15 @@ its constituent selector expressions. Thus
 
 -   `.foo &url` is a selector with one subselector with two selector
     expressions which matches elements which have a class `foo` *and*
-    have a method `url`.
+    have a property `url`.
 
 -   `.foo|&url` is a selector with two subselectors with one selector
     expression each, which matches elements which have a class `foo`
-    *or* a method `url` (or both).
+    *or* a property `url` (or both).
 
 -   `Code .perl|Link &url~{perldoc}` is a selector with two subselectors
     with two selector expressions each, which matches Code elements with
-    a class `perl` or Link elements whose `url` method returns a value
+    a class `perl` or Link elements whose `url` property has a value
     containing `perldoc`.
 
 Each expression has one of the forms described below, where words
@@ -139,12 +146,12 @@ expression:
       !.foo          ...does not have a class "foo".
       %foo~bar       ...has an attribute "foo" with the value "bar".
       !%foo~bar      ...does not have an attribute "foo" with the value "bar".
-      &url~{^ftp}    ...has a method url() which returns a value starting with "ftp".
-      !&url~{^ftp}   ...does not have a method url() which returns a value starting with "ftp".
+      &url~{^ftp}    ...has a property `url` which has a value starting with "ftp".
+      !&url~{^ftp}   ...does not have a property `url` which has a value starting with "ftp".
 
 Note that in the last two negated expressions it doesn’t make a
-difference whether the element lacks those properties or has them with
-another value.
+difference whether the element lacks those attributes or properties or
+has them with another value.
 
 ## Placeholders
 
@@ -178,10 +185,10 @@ These are all valid:
 ### `<string>`, `<key>`, `<value>`, `<name>`
 
 An arbitrary string, either unquoted and consisting of word (`\w`)
-characters, possibly with internal hyphens (`-` U+002D), or quoted, i.e.
-delimited by single (`'...'` U+0027) or double (`"..."` U+0022) quotes.
-The unquoted "word" or string inside the quotes must match literally in
-its context.
+characters, possibly with internal hyphens (`-` U+002D), or quoted,
+i.e. delimited by single (`'...'` U+0027) or double (`"..."` U+0022)
+quotes. The unquoted “word” or string inside the quotes must match
+literally in its context.
 
 To include a quote of the same type you should escape it by doubling.
 This escaping mechanism is orthogonal to, and should be used in addition
@@ -282,9 +289,9 @@ For example `{^Code}` will match both `Code` and `CodeBlock` elements.
 #### `[!]:document|block|inline|meta`
 
 True if the element is a document object, a block element, an inline
-element or a metadata element respectively, as determined by the return
-value of calling the is\_document(), is\_block(), is\_inline() or
-is\_meta() method on it respectively.
+element or a metadata element respectively, as determined by the value
+of the `is_document`, `is_block`, `is_inline` or `is_meta` property of
+the element respectively.
 
 Examples:
 
@@ -302,8 +309,8 @@ Pandoc::Elements selector syntax.)
 
 #### `[!]#{<regex>}[<modifiers>]`
 
-True if the element has an id() method and the value returned by that
-method is equal to `<string>` or matches the `<regex>`.
+True if the element has an `id` property and the value of that property
+is equal to `<string>` or matches the `<regex>`.
 
 Examples:
 
@@ -320,18 +327,23 @@ Pandoc’s attribute syntax and CSS selector syntax.)
 
 #### `[!].{<regex>}[<modifiers>]`
 
-True if the element has a class() attribute and one or more of the
-classes is equal to `<string>` or matches the `<regex>`.
+True if the element has a `class` attribute and one or more of the
+classes is equal to `<string>` or matches `<regex>`.
+
+**Note:** to access the entire HTML-style whitespace-separated `class`
+attribute value you should use the `&class` property.
 
 (The `.` character is already used as a prefix for class names in
 Pandoc’s attribute syntax and CSS selector syntax.)
 
-### Select by element method
+### Select by element property
 
-#### `[!]&<method>`
+#### `[!]&<property>`
 
-True if the element object has a method `<method>`, as determined with
-`$e->can($method)`.
+True if the element object has a property `<property>`.
+
+(Currently determined with `$element->can(PROPERTY)` in the proposed
+Perl/Pandoc::Elements implementation).
 
 Examples:
 
@@ -339,28 +351,29 @@ Examples:
     '&format'   # same as 'RawBlock|RawInline'
     '&attr'     # same as a rather long list...
 
-(The `&` character was chosen as a prefix for method names because it is
-used as the sigil for subroutines in Perl.)
+(The `&` character was chosen as a prefix for properties because in
+Pandoc::Elements properties are accessed through accessor methods and
+`&` is used as the sigil for subroutines in Perl.)
 
-#### `[!]&<method><match-op><string>`
+#### `[!]&<property><match-op><string>`
 
-#### `[!]&<method><match-op>{<regex>}[<modifiers>]`
+#### `[!]&<property><match-op>{<regex>}[<modifiers>]`
 
-True if the element has a method `<method>`, and the return value is
-equal to `<string>` or matches `<regex>`.
+True if the element has a property `<property>`, and the value of that
+property is equal to `<string>` or matches `<regex>`.
 
-Note that you probably don’t want to use this with methods which don’t
-return strings!
+Note that you probably don’t want to use this with properties whose
+values aren’t strings!
 
 Examples:
 
     '&format~latex'
     '&title!~{Wikipedia}'
 
-#### `[!]&<method><num-op><number>`
+#### `[!]&<property><num-op><number>`
 
-Compares the return value of `<method>` against `<number>` using the
-numeric operator `<num-op>`.
+Compares the value of `<property>` against `<number>` using the numeric
+operator `<num-op>`.
 
 Examples:
 
@@ -375,9 +388,13 @@ Examples:
 
 #### `[!]%<attr-name>`
 
-True if the element has an attribute `<attr-name>` accessible through
-`$e->keyvals->{$attribute}`; in other words it includes `id` and `class`
-but not e.g. `title` (unless you have said `[foo](bar "baz"){title="quux"}` which will be rendered by Pandoc as `<p><a href="bar" title="quux" title="baz">foo</a></p>` and probably confuse
+True if the element has an attribute `<attr-name>`.
+
+(Currently determined with `exists $element->keyvals->{$attribute}` in
+the proposed Perl/Pandoc::Elements implementation; in other words it
+includes `id` and `class` but not e.g. `title` — unless you have said
+`[foo](bar "baz"){title="quux"}` which will be rendered by Pandoc as
+`<a href="bar" title="quux" title="baz">foo</a>` and probably confuse
 your browser).
 
 Examples:
@@ -437,8 +454,7 @@ The difference between `!%<attr-name>` and `&!~<attr-name>` is that the
 former is true both when the element doesn’t have any attributes and
 when it has one or more attributes with other names, while the latter is
 true when the element has one or more attributes with other names, but
-false if the element doesn’t have any
-attributes.
+false if the element doesn’t have any attributes.
 
 #### `[!]%[<name-match-op>]{<name-regex>}[<modifiers>]`
 
@@ -505,11 +521,11 @@ longer (sub)expressions. In particular
     --------------------------------------------------------------------
 
 On the one hand it can be argued that these shortcuts are unnecessary
-since the longer equivalents (which they are often 'translated into' by
+since the longer equivalents (which they are often ‘translated into’ by
 the parser) exist, but it can also be argued that it is an advantage to
 have shorter expressions for common cases, using a syntax which in most
-cases is familiar from elsewhere. Also most of the 'shortcuts' are
-easier on the human eye than their 'full' equivalents.
+cases is familiar from elsewhere. Also most of the ‘shortcuts’ are
+easier on the human eye than their ‘full’ equivalents.
 
 # AUTHOR
 
@@ -523,13 +539,4 @@ Copyright 2017- Benct Philip Jonsson
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself. See
-<http://dev.perl.org/licenses/>.
-# SEE ALSO
-
-1.  For the record `/.../` was rejected as regex delimiters because it
-    is probably easier to forget to backslash-escape a slash inside a
-    regex than to forget a closing bracket-type delimiter, and braces
-    are probably more uncommon than slashes (which are used in dates and
-    fractions for example} so that backslashes can usually be avoided
-    entirely, even though the possibility to choose custom delimiters
-    like in Perl isn’t available.
+<http://dev.perl.org/licenses/>. \# SEE ALSO

@@ -2,7 +2,7 @@
 
 # Proposed Pandoc::Elements extended selector expression syntax
 #
-# VERSION 201804251740
+# VERSION 201805021600
 #
 # The latest version of this script can be found at 
 # <https://github.com/bpj/pandoc-elements-selectors>
