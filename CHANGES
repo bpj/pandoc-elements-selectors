@@ -2,6 +2,11 @@ CHANGELOG
 
 <https://github.com/bpj/pandoc-elements-selectors>
 
+2018-05-02 16:03:41 +0200
+    speak of properties rather than methods (fixes #1)
+
+        Benct Philip Jonsson <bpjonsson@gmail.com>
+
 2018-04-25 17:33:25 +0200
     Document "shortcuts"/syntactic sugar more explicitly
 
