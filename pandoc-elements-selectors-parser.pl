@@ -4,41 +4,75 @@
 #
 # VERSION 201805021600
 #
-# The latest version of this script can be found at 
+# The latest version of this script can be found at
 # <https://github.com/bpj/pandoc-elements-selectors>
 #
 # You can test the syntax by running this script and typing selectors to STDIN.
 # The selector will be compiled and the compiled subroutine or any error message
 # will be printed to STDOUT.
 
-# use utf8;      
+# use utf8;
 use utf8::all;
 use autodie 2.26;
-use 5.010001;     
-use strict;    
-use warnings;  
-use warnings  qw(FATAL utf8);    
-# use open      qw(:std :utf8);    
-# use charnames qw(:full :short);  
+use 5.010001;
+use strict;
+use warnings;
+use warnings  qw(FATAL utf8);
+# use open      qw(:std :utf8);
+# use charnames qw(:full :short);
 
-use Carp               qw[ carp croak confess cluck     ];
+use Carp                qw[ carp croak confess cluck     ];
+use Text::Glob          qw[ glob_to_regex ];
 
 use Data::Printer deparse => 1, alias => 'ddp', output => 'stdout';
 
-my $string_re = qr{
+my %oppos = qw| ( ) { } [ ] < > |;
+@oppos{ values %oppos } = keys %oppos;
+
+my $unescaped_re = qr{ (?<unescaped> (?<! \\ ) (?: \\ \\ )*  ) }msx;
+my $balanced_braces_re = qr{
+    (?<balanced_braces>
+        \{ (?: [^\{\}\\]*+ (?: \\. [^\{\}\\]*+ )*+ | (?&balanced_braces) )* \}
+    )
+}msx;
+
+my $unbalanced_braces_re = qr{
+    (?&unescaped)
     (?:
-        (?<quote> '   ) (?<string>  [^']*   (?: ''  [^']*   )* ) '
-    |   (?<quote> "   ) (?<string>  [^"]*   (?: ""  [^"]*   )* ) "
-    |   (?<quote> [{] ) (?<regex>   (?&REGEX)                  ) [}] (?<mod> \w* )
-    |   (?<quote>     ) (?<string>  \b(?=\w)[-\w]*\w\b         )
+        (?<ok>
+            (?&balanced_braces)
+        |   \\ [\{\}]
+        )
+    |   (?<unbalanced> [\{\}] )
     )
     (?(DEFINE)
+        $unescaped_re
+        $balanced_braces_re
+    )
+}msx;
+
+my $string_re = qr{
+    (?<string_re_match>
+        (?<quote> '   ) (?<string>  (?&SINGLE_QUOTED) ) '
+    |   (?<quote> "   ) (?<string>  (?&DOUBLE_QUOTED) ) "
+    |   (?<quote> \[  ) (?<glob>    (?&GLOB)          ) \] # (?<mod> \w* )
+    |   (?<quote> [{] ) (?<regex>   (?&REGEX)         ) [}] (?<mod> \w* )
+    |   (?<quote>     ) (?<string>  (?&WORD)          )
+    )
+    (?(DEFINE)
+        (?<SINGLE_QUOTED>  [^']*   (?: ''  [^']*   )* )
+        (?<DOUBLE_QUOTED>  [^"]*   (?: ""  [^"]*   )* )
+        (?<WORD>           \b(?=\w)[-\w]*\w\b         )
+        (?<CHARCLASS> 
+            \[ \]? (?: \[:\^?\w+:\] | [^\[\]\\]*+ | \\. [^\[\]\\]*+ | \[ )* \]
+        )
+        (?<GLOB> (?: [^\]\[\\]*+ | \\. [^\]\[\\]*+ | \[ (?&GLOB) \] )* )
         (?<REGEX>
             (?:
-                [^\{\}\[\]\\]+                          # 'normal' characters
-            |   \\.                                     # or backslash escapes
-            |   \[ \]? [^\]\\]* (?: \\. [^\]\\]* )* \]  # or character classes
-            |   [{] (?&REGEX) [}]                       # or nested balanced braces
+                [^\{\}\[\]\\]*+         # 'normal' characters
+            |   \\. [^\{\}\[\]\\]*+     # or backslash escapes
+            |   (?&CHARCLASS)           # or character classes
+            |   [{] (?&REGEX) [}]       # or nested balanced braces
             )*
         )
     )
@@ -58,7 +92,7 @@ my $expression_re = qr{
                                                              )?
     |   (?<sigil> [.#]? )                                                          (?<value> (?&STRING) )
     )
-    \s* 
+    \s*
     (?(DEFINE)
         (?<ID> (?!\d) \w+ )
         (?<NUM> -? \b (?: [0-9]* \. [0-9]+ | [0-9]+ ) \b )
@@ -69,7 +103,7 @@ my $expression_re = qr{
 }msx;
 
 my $selector_re = qr{
-    \s* (?<selector> (?&EXPRESSION)+ ) \s* (?: \| \s* | \z ) | (?<invalid> \S+ )
+    \s* (?<selector> (?&EXPRESSION)+ ) (?: \z | \s* \| \s* | \s+ ) | (?<invalid> \S+ )
     (?(DEFINE) (?<EXPRESSION> $expression_re ) )
 }msx;
 
@@ -86,16 +120,34 @@ my %compile_word = (
     q[]     => sub { qr{^\Q$_[0]{string}\E$} },
     q[{]    => sub {
         my($match) = @_;
-        my $regex = $match->{regex};
+        my $regex = _validate_regex( $match->{regex}, $match->{string_re_match} );
         my $mod = $match->{mod};
         my $ret;
-        $regex =~ s{\\(.)|([\$\@\/])}{\\$+}g;
         eval { $ret = qr/(?$mod:$regex)/; 1; } or do{
             my $e = $@;
-            croak "Error compiling regex in selector:\n$e";
+            croak "Error compiling regex pattern $match->{string_re_match} in selector:\n$e";
         };
         return $ret;
     },
+    q{[} => sub {
+        my ( $match ) = @_;
+        my $glob  = _validate_glob( $match->{glob}, $match->{string_re_match} );
+        my $regex;
+        eval {
+            # we are not matching paths so we don't need these!
+            local $Text::Glob::strict_leading_dot    = 0;
+            local $Text::Glob::strict_wildcard_slash = 0;
+            # compile the regex
+            $regex = glob_to_regex($glob);
+            # make sure we return true if we didn't already die
+            1;
+        }
+        or do {
+            my $e = $@;
+            croak "Error compiling glob pattern $match->{string_re_match} in selector:\n$e";
+        };
+        return $regex;
+      },
 );
 
 my $compile_method_check = sub {
@@ -119,6 +171,7 @@ my $compile_kv_check = sub {
         q{.} => q{/^class$/},
     };
     my($match) = @_;
+    $match->{check_keyvals} = 1;
     $match->{key} //= $key_for_sigil->{$match->{sigil}};
     my($k, $v, $n, $c, $o) = map {; $_ // "" } @{$match}{qw[key value not cmp op]};
     for my $x ( [ \$k, \$o ], [ \$v, \$c ] ) {
@@ -130,10 +183,9 @@ my $compile_kv_check = sub {
     if ( length $v ) {
         return qq{
             (   $n(
-                    \$e->can( 'keyvals' ) and do {
-                        my \$kv   = \$e->keyvals;
+                    do {
                         my \$hits = 0;
-                        for my \$key ( grep { $k } \$kv->keys ) {
+                        for my \$key ( grep { $k } \@keys ) {
                             \$hits += ( grep { $v } \$kv->get_all( \$key ) );
                         }
                         !!\$hits;
@@ -144,7 +196,7 @@ my $compile_kv_check = sub {
     }
     else {
         return qq{
-            ( $n( \$e->can( 'keyvals' ) and !!(grep { $k } \$e->keyvals->keys)))
+            ( $n(!!(grep { $k } \@keys )))
         };
     }
 };
@@ -169,7 +221,7 @@ my %compile_expression = (
 
 sub _compile_selector {
     my($string) = @_;
-    my @selectors;
+    my(@selectors, $check_keyvals);
     while ( $string =~ /\G$selector_re/gc ) {
         my %match = %+;
         my @pos = @-;
@@ -182,13 +234,24 @@ sub _compile_selector {
         push @selectors, $match{selector}
     }
     for my $selector ( @selectors ) {
-        $selector = _compile_expressions($selector);
+        my $_check_kvs;
+        ($selector, $_check_kvs) = _compile_expressions($selector);
+        $check_keyvals ||= $_check_kvs;
     }
     my $selectors_code = join qq{ )\nor( }, @selectors;
-    my $code = qq{ \$sub = sub { 
+    (my $keyvals_code = $check_keyvals ?
+        q{
+        ;;;        $e->can('keyvals') or return !!0;
+        ;;;        my $kv = $e->keyvals;
+        ;;;        my @keys = $kv->keys;
+        ;;;}
+        : "") =~ s/^\s*;;;//gm;
+    my $code = qq{ \$sub = sub {
         no warnings qw[ uninitialized numeric ];
-        my(\$e) = \@_; return( ( $selectors_code ) ); };
-        1; 
+        my(\$e) = \@_;
+        $keyvals_code
+        return( ( $selectors_code ) ); };
+        1;
     };
     my $sub;
     local $@;
@@ -201,14 +264,14 @@ sub _compile_selector {
 
 sub _compile_expressions {
     my( $selector ) = @_;
-    my @expressions;
+    my( @expressions, $check_keyvals );
     while( $selector =~ /\G$expression_re/gc ) {
         my $match = +{ %+ };
         for my $key ( qw[ key value ] ) {
             next unless defined $match->{$key};
             next unless $match->{$key} =~ /$word_re/;
             $match->{$key} = $compile_word{$+{quote}}->(+{ %+ });
-            $match->{$key} = "/$match->{$key}/"
+            $match->{$key} = "m/$match->{$key}/"
         }
         for my $cmp ( qw[ cmp op ] ) {
             $match->{$cmp} // next;
@@ -218,15 +281,63 @@ sub _compile_expressions {
         }
         if ( $match->{num} ) {
             ## Ensure decimal interpretation!
-            $match->{num} =~ s/^0+(?=\d)//;
+            $match->{num} =~ s/^\-?\K0+(?=\d)//;
         }
         $match->{value} ||= $match->{num};
         push @expressions, $compile_expression{ $match->{sigil} }->($match);
+        $check_keyvals //= $match->{check_keyvals};
     }
-    return join 'and', @expressions;
+    return _crunch( join q{ and }, @expressions), $check_keyvals;
 }
 
- 
+sub _crunch {
+  my($text) = @_;
+  $text =~ s{\s+}{ }g; # crunch ws
+  $text =~ s{\A\s+}{}; # trim ws before
+  $text =~ s{\s+\z}{}; # trim ws after
+  return $text;
+}
+
+sub _check_unbalanced_braces {
+    my($string, $ctx, $pattern) = @_;
+    $ctx //= $string;
+    $pattern //= 'pattern';
+    $string =~ m{$unbalanced_braces_re} or return;
+    exists $+{unbalanced} and croak _crunch(
+        qq{Unbalanced unescaped "$+{unbalanced}" in selector $pattern "$ctx".
+            Please check that you didn't omit a "$oppos{$+{unbalanced}}"
+            or use escaped "\\$+{unbalanced}" instead!});
+}
+
+sub _validate_regex {
+    state $interpol_re = qr{
+        (?&unescaped)
+        (?<interp> (?<sigil> [\@\$] ) (?: (?&maybe) | \w+ ) )
+        (?(DEFINE)
+            $unescaped_re
+            $balanced_braces_re
+            (?<maybe> # maybe balanced braces
+                \{ (?: (?: [^\{\}\\]*+ (?: \\. [^\{\}\\]*+ )*+ | (?&balanced_braces) )* \} )?
+            )
+        )
+    }msx;
+    _check_unbalanced_braces(@_, 'regex');
+    my($regex, $ctx) = @_;
+    $ctx //= $regex;
+    # don't allow interpolation in regexes!
+    $regex =~ m{$interpol_re} and croak _crunch(
+        qq{Interpolation of $+{interp} not supported in selector regex "$ctx".
+            If you meant to match "$+{sigil}" please use "\\$+{sigil}"!});
+    # escape slashes so we can eval /$regex/ safely!
+    $regex =~ s{(?<!\\)(?:\\\\)*\K/}{\\/}g;
+    return $regex;
+}
+
+sub _validate_glob {
+    _check_unbalanced_braces(@_, 'glob pattern');
+    return $_[0];
+}
+
 use Try::Tiny;
 
 while ( <> ) {
