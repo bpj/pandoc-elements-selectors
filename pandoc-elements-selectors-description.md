@@ -19,7 +19,7 @@ Proposed Pandoc::Elements extended selector expression syntax
 
 # VERSION
 
-201805021600
+201809072000
 
 # DESCRIPTION
 
